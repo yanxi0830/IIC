@@ -1,5 +1,7 @@
+import sys
 import torch.nn as nn
 
+sys.path.append('/h/yanxi/Disk/IIC')
 from code.archs.cluster.net5g import ClusterNet5gTrunk
 from code.archs.cluster.net6c import ClusterNet6c, ClusterNet6cTrunk
 from code.archs.cluster.residual import BasicBlock, ResNet

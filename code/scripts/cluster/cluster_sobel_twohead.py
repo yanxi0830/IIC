@@ -6,7 +6,7 @@ import os
 import pickle
 import sys
 from datetime import datetime
-
+import sys
 import matplotlib
 import numpy as np
 import torch
@@ -14,6 +14,7 @@ import torch
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
+sys.path.append('/h/yanxi/Disk/IIC')
 import code.archs as archs
 from code.utils.cluster.general import config_to_str, get_opt, update_lr, nice
 from code.utils.cluster.transforms import sobel_process
@@ -53,7 +54,7 @@ parser.add_argument("--num_dataloaders", type=int, default=3)
 parser.add_argument("--num_sub_heads", type=int, default=5)  # per head...
 
 parser.add_argument("--out_root", type=str,
-                    default="/scratch/shared/slow/xuji/iid_private")
+                    default="./out")
 parser.add_argument("--restart", dest="restart", default=False,
                     action="store_true")
 parser.add_argument("--restart_from_best", dest="restart_from_best",
