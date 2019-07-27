@@ -241,15 +241,15 @@ else:
     if config.select_sub_head_on_loss:
         sub_head = get_subhead_using_loss(config, dataloaders_head_B, net,
                                           sobel=True, lamb=config.lamb)
-    _ = cluster_eval(config, net,
-                     mapping_assignment_dataloader=mapping_assignment_dataloader,
-                     mapping_test_dataloader=mapping_test_dataloader,
-                     sobel=True,
-                     use_sub_head=sub_head)
-
-    print("Pre: time %s: \n %s" % (datetime.now(), nice(config.epoch_stats[-1])))
-    if config.double_eval:
-        print("double eval: \n %s" % (nice(config.double_eval_stats[-1])))
+    # _ = cluster_eval(config, net,
+    #                  mapping_assignment_dataloader=mapping_assignment_dataloader,
+    #                  mapping_test_dataloader=mapping_test_dataloader,
+    #                  sobel=True,
+    #                  use_sub_head=sub_head)
+    #
+    # print("Pre: time %s: \n %s" % (datetime.now(), nice(config.epoch_stats[-1])))
+    # if config.double_eval:
+    #     print("double eval: \n %s" % (nice(config.double_eval_stats[-1])))
     sys.stdout.flush()
     next_epoch = 1
 
@@ -452,9 +452,9 @@ for e_i in range(next_epoch, config.num_epochs):
 
     # Save -----------------------------------------------------------------------
     torch.save(net.module.state_dict(),
-               os.path.join(config.out_dir, "latest_net.pth"))
+               os.path.join(config.out_dir, "latest_net.pytorch"))
     torch.save(optimiser.state_dict(),
-               os.path.join(config.out_dir, "latest_optimiser.pth"))
+               os.path.join(config.out_dir, "latest_optimiser.pytorch"))
     config.last_epoch = e_i  # for last saved version
 
     with open(os.path.join(config.out_dir, "config.pickle"),

@@ -3,7 +3,7 @@
 set -x
 
 python ./code/scripts/cluster/cluster_sobel_twohead.py \
---model_ind 569  \
+--model_ind $1  \
 --arch ClusterNet5gTwoHead \
 --mode IID \
 --dataset IMAGENET32 \
@@ -14,7 +14,7 @@ python ./code/scripts/cluster/cluster_sobel_twohead.py \
 --lamb 1.0 \
 --lr 0.0001  \
 --num_epochs 256 \
---batch_sz 2000 \
+--batch_sz 4000 \
 --num_dataloaders 5 \
 --num_sub_heads 5 \
 --crop_orig \
