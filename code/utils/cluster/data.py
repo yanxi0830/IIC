@@ -10,9 +10,10 @@ from code.utils.cluster.transforms import sobel_make_transforms, \
     greyscale_make_transforms
 from code.utils.semisup.dataset import TenCropAndFinish
 from .general import reorder_train_deterministic
-
+from ...datasets.clustering.downsampled_imagenet import ImageNetDS
 
 # Used by sobel and greyscale clustering twohead scripts -----------------------
+
 
 def cluster_twohead_create_dataloaders(config):
     assert (config.mode == "IID")
@@ -55,6 +56,18 @@ def cluster_twohead_create_dataloaders(config):
         config.mapping_test_partitions = ["train", "test"]
 
         dataset_class = torchvision.datasets.STL10
+
+        # datasets produce either 2 or 5 channel images based on config.include_rgb
+        tf1, tf2, tf3 = sobel_make_transforms(config)
+    elif config.dataset == "IMAGENET32":
+        print("cluster_twohead_create_dataloaders: make ImageNet32 dataloaders")
+        config.train_partitions_head_A = [True, False]
+        config.train_partitions_head_B = config.train_partitions_head_A
+
+        config.mapping_assignment_partitions = [True, False]
+        config.mapping_test_partitions = [True, False]
+
+        dataset_class = ImageNetDS
 
         # datasets produce either 2 or 5 channel images based on config.include_rgb
         tf1, tf2, tf3 = sobel_make_transforms(config)
@@ -267,6 +280,14 @@ def _create_dataloaders(config, dataset_class, tf1, tf2,
                 transform=tf1,
                 split=train_partition,
                 target_transform=target_transform)
+        elif config.dataset == "IMAGENET32":
+            train_imgs_curr = dataset_class(
+                root=config.dataset_root,
+                img_size=32,
+                transform=tf1,
+                train=train_partition,
+                target_transform=target_transform
+            )
         else:
             train_imgs_curr = dataset_class(
                 root=config.dataset_root,
@@ -304,6 +325,14 @@ def _create_dataloaders(config, dataset_class, tf1, tf2,
                     transform=tf2,  # random per call
                     split=train_partition,
                     target_transform=target_transform)
+            elif config.dataset == "IMAGENET32":
+                train_imgs_tf_curr = dataset_class(
+                    root=config.dataset_root,
+                    img_size=32,
+                    transform=tf2,
+                    train=train_partition,
+                    target_transform=target_transform
+                )
             else:
                 train_imgs_tf_curr = dataset_class(
                     root=config.dataset_root,
@@ -357,6 +386,14 @@ def _create_mapping_loader(config, dataset_class, tf3, partitions,
                 transform=tf3,
                 split=partition,
                 target_transform=target_transform)
+        elif config.dataset == "IMAGENET32":
+            imgs_curr = dataset_class(
+                root=config.dataset_root,
+                img_size=32,
+                transform=tf3,
+                train=partition,
+                target_transform=target_transform
+            )
         else:
             imgs_curr = dataset_class(
                 root=config.dataset_root,

@@ -113,8 +113,7 @@ def cluster_subheads_eval(config, net,
         best_sub_head = best_sub_head_eval
 
     if config.mode == "IID":
-        assert (
-                config.mapping_assignment_partitions == config.mapping_test_partitions)
+        assert (config.mapping_assignment_partitions == config.mapping_test_partitions)
         test_accs = train_accs
     elif config.mode == "IID+":
         flat_predss_all, flat_targets_all, = \
@@ -133,7 +132,7 @@ def cluster_subheads_eval(config, net,
 
             test_accs[i] = test_acc
     else:
-        assert (False)
+        raise NotImplementedError('cluster_subheads_eval')
 
     return {"test_accs": list(test_accs),
             "avg": np.mean(test_accs),

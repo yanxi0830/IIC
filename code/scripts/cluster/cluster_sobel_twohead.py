@@ -64,7 +64,7 @@ parser.add_argument("--test_code", dest="test_code", default=False,
 parser.add_argument("--stl_leave_out_unlabelled", default=False,
                     action="store_true")
 
-parser.add_argument("--save_freq", type=int, default=10)
+parser.add_argument("--save_freq", type=int, default=1)
 
 parser.add_argument("--double_eval", default=False, action="store_true")
 
@@ -202,7 +202,7 @@ if config.restart:
     else:
         # sanity check
         next_epoch = np.argmax(np.array(config.epoch_acc)) + 1
-        assert (next_epoch == config.last_epoch + 1)
+        # assert (next_epoch == config.last_epoch + 1)
     print("starting from epoch %d" % next_epoch)
 
     config.epoch_acc = config.epoch_acc[:next_epoch]  # in case we overshot
@@ -274,7 +274,8 @@ for e_i in range(next_epoch, config.num_epochs):
             dataloaders = dataloaders_head_B
             epoch_loss = config.epoch_loss_head_B
             epoch_loss_no_lamb = config.epoch_loss_no_lamb_head_B
-
+        else:
+            dataloaders = None
         avg_loss = 0.  # over heads and head_epochs (and sub_heads)
         avg_loss_no_lamb = 0.
         avg_loss_count = 0
@@ -337,7 +338,7 @@ for e_i in range(next_epoch, config.num_epochs):
                 avg_loss_batch /= config.num_sub_heads
                 avg_loss_no_lamb_batch /= config.num_sub_heads
 
-                if ((b_i % 100) == 0) or (e_i == next_epoch and b_i < 10):
+                if ((b_i % 10) == 0) or (e_i == next_epoch and b_i < 10):
                     print("Model ind %d epoch %d head %s head_i_epoch %d batch %d: avg "
                           "loss %f avg loss no lamb %f time %s" % \
                           (config.model_ind, e_i, head, head_i_epoch, b_i,
@@ -367,87 +368,94 @@ for e_i in range(next_epoch, config.num_epochs):
         epoch_loss_no_lamb.append(avg_loss_no_lamb)
 
     # Eval -----------------------------------------------------------------------
+    #
+    # # Can also pick the subhead using the evaluation process (to do this,
+    # #  set use_sub_head=None)
+    # sub_head = None
+    # if config.select_sub_head_on_loss:
+    #     sub_head = get_subhead_using_loss(config, dataloaders_head_B, net,
+    #                                       sobel=True, lamb=config.lamb)
+    # is_best = cluster_eval(config, net,
+    #                        mapping_assignment_dataloader=mapping_assignment_dataloader,
+    #                        mapping_test_dataloader=mapping_test_dataloader,
+    #                        sobel=True,
+    #                        use_sub_head=sub_head)
+    #
+    # print("Pre: time %s: \n %s" % (datetime.now(), nice(config.epoch_stats[-1])))
+    # if config.double_eval:
+    #     print("     double eval: \n %s" % (nice(config.double_eval_stats[-1])))
+    # sys.stdout.flush()
+    #
+    # axarr[0].clear()
+    # axarr[0].plot(config.epoch_acc)
+    # axarr[0].set_title("acc (best), top: %f" % max(config.epoch_acc))
+    #
+    # axarr[1].clear()
+    # axarr[1].plot(config.epoch_avg_subhead_acc)
+    # axarr[1].set_title("acc (avg), top: %f" % max(config.epoch_avg_subhead_acc))
+    #
+    # axarr[2].clear()
+    # axarr[2].plot(config.epoch_loss_head_A)
+    # axarr[2].set_title("Loss head A")
+    #
+    # axarr[3].clear()
+    # axarr[3].plot(config.epoch_loss_no_lamb_head_A)
+    # axarr[3].set_title("Loss no lamb head A")
+    #
+    # axarr[4].clear()
+    # axarr[4].plot(config.epoch_loss_head_B)
+    # axarr[4].set_title("Loss head B")
+    #
+    # axarr[5].clear()
+    # axarr[5].plot(config.epoch_loss_no_lamb_head_B)
+    # axarr[5].set_title("Loss no lamb head B")
+    #
+    # if config.double_eval:
+    #     axarr[6].clear()
+    #     axarr[6].plot(config.double_eval_acc)
+    #     axarr[6].set_title("double eval acc (best), top: %f" %
+    #                        max(config.double_eval_acc))
+    #
+    #     axarr[7].clear()
+    #     axarr[7].plot(config.double_eval_avg_subhead_acc)
+    #     axarr[7].set_title("double eval acc (avg), top: %f" %
+    #                        max(config.double_eval_avg_subhead_acc))
+    #
+    # fig.tight_layout()
+    # fig.canvas.draw_idle()
+    # fig.savefig(os.path.join(config.out_dir, "plots.png"))
+    #
+    # if is_best or (e_i % config.save_freq == 0):
+    #     net.module.cpu()
+    #
+    #     if e_i % config.save_freq == 0:
+    #         torch.save(net.module.state_dict(),
+    #                    os.path.join(config.out_dir, "latest_net.pytorch"))
+    #         torch.save(optimiser.state_dict(),
+    #                    os.path.join(config.out_dir, "latest_optimiser.pytorch"))
+    #         config.last_epoch = e_i  # for last saved version
+    #
+    #     if is_best:
+    #         torch.save(net.module.state_dict(),
+    #                    os.path.join(config.out_dir, "best_net.pytorch"))
+    #         torch.save(optimiser.state_dict(),
+    #                    os.path.join(config.out_dir, "best_optimiser.pytorch"))
+    #         with open(os.path.join(config.out_dir, "best_config.pickle"),
+    #                   'wb') as outfile:
+    #             pickle.dump(config, outfile)
+    #
+    #         with open(os.path.join(config.out_dir, "best_config.txt"),
+    #                   "w") as text_file:
+    #             text_file.write("%s" % config)
+    #
+    #     net.module.cuda()
 
-    # Can also pick the subhead using the evaluation process (to do this,
-    #  set use_sub_head=None)
-    sub_head = None
-    if config.select_sub_head_on_loss:
-        sub_head = get_subhead_using_loss(config, dataloaders_head_B, net,
-                                          sobel=True, lamb=config.lamb)
-    is_best = cluster_eval(config, net,
-                           mapping_assignment_dataloader=mapping_assignment_dataloader,
-                           mapping_test_dataloader=mapping_test_dataloader,
-                           sobel=True,
-                           use_sub_head=sub_head)
-
-    print("Pre: time %s: \n %s" % (datetime.now(), nice(config.epoch_stats[-1])))
-    if config.double_eval:
-        print("     double eval: \n %s" % (nice(config.double_eval_stats[-1])))
-    sys.stdout.flush()
-
-    axarr[0].clear()
-    axarr[0].plot(config.epoch_acc)
-    axarr[0].set_title("acc (best), top: %f" % max(config.epoch_acc))
-
-    axarr[1].clear()
-    axarr[1].plot(config.epoch_avg_subhead_acc)
-    axarr[1].set_title("acc (avg), top: %f" % max(config.epoch_avg_subhead_acc))
-
-    axarr[2].clear()
-    axarr[2].plot(config.epoch_loss_head_A)
-    axarr[2].set_title("Loss head A")
-
-    axarr[3].clear()
-    axarr[3].plot(config.epoch_loss_no_lamb_head_A)
-    axarr[3].set_title("Loss no lamb head A")
-
-    axarr[4].clear()
-    axarr[4].plot(config.epoch_loss_head_B)
-    axarr[4].set_title("Loss head B")
-
-    axarr[5].clear()
-    axarr[5].plot(config.epoch_loss_no_lamb_head_B)
-    axarr[5].set_title("Loss no lamb head B")
-
-    if config.double_eval:
-        axarr[6].clear()
-        axarr[6].plot(config.double_eval_acc)
-        axarr[6].set_title("double eval acc (best), top: %f" %
-                           max(config.double_eval_acc))
-
-        axarr[7].clear()
-        axarr[7].plot(config.double_eval_avg_subhead_acc)
-        axarr[7].set_title("double eval acc (avg), top: %f" %
-                           max(config.double_eval_avg_subhead_acc))
-
-    fig.tight_layout()
-    fig.canvas.draw_idle()
-    fig.savefig(os.path.join(config.out_dir, "plots.png"))
-
-    if is_best or (e_i % config.save_freq == 0):
-        net.module.cpu()
-
-        if e_i % config.save_freq == 0:
-            torch.save(net.module.state_dict(),
-                       os.path.join(config.out_dir, "latest_net.pytorch"))
-            torch.save(optimiser.state_dict(),
-                       os.path.join(config.out_dir, "latest_optimiser.pytorch"))
-            config.last_epoch = e_i  # for last saved version
-
-        if is_best:
-            torch.save(net.module.state_dict(),
-                       os.path.join(config.out_dir, "best_net.pytorch"))
-            torch.save(optimiser.state_dict(),
-                       os.path.join(config.out_dir, "best_optimiser.pytorch"))
-            with open(os.path.join(config.out_dir, "best_config.pickle"),
-                      'wb') as outfile:
-                pickle.dump(config, outfile)
-
-            with open(os.path.join(config.out_dir, "best_config.txt"),
-                      "w") as text_file:
-                text_file.write("%s" % config)
-
-        net.module.cuda()
+    # Save -----------------------------------------------------------------------
+    torch.save(net.module.state_dict(),
+               os.path.join(config.out_dir, "latest_net.pth"))
+    torch.save(optimiser.state_dict(),
+               os.path.join(config.out_dir, "latest_optimiser.pth"))
+    config.last_epoch = e_i  # for last saved version
 
     with open(os.path.join(config.out_dir, "config.pickle"),
               'wb') as outfile:
