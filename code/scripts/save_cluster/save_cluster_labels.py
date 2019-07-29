@@ -44,7 +44,7 @@ def main():
     config.double_eval = False  # no double eval, not training (or saving config)
 
     net = archs.__dict__[config.arch](config)
-    model_path = os.path.join(given_config.out_dir, "best_net.pytorch")
+    model_path = os.path.join(given_config.out_dir, "latest_net.pytorch")
     net.load_state_dict(torch.load(model_path, map_location=lambda storage, loc: storage))
     net.cuda()
     net = torch.nn.DataParallel(net)
@@ -57,29 +57,30 @@ def main():
     # print(tf2)
     # print(tf3)
 
-    dataset = torchvision.datasets.CIFAR10(config.dataset_root, train=True, transform=tf3)
-    # dataset = ImageNetDS(config.dataset_root + '/downsampled-imagenet-32/', 32, train=True, transform=None)
+    # dataset = torchvision.datasets.CIFAR10(config.dataset_root, train=True, transform=tf3)
+    dataset = ImageNetDS(config.dataset_root, 32, train=True, transform=tf3)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=config.batch_sz, shuffle=False)
 
     flat_predss_all, flat_targets_all, = _clustering_get_data(config, net, dataloader, sobel=True,
                                                               using_IR=False,
                                                               verbose=True)
     print(len(flat_predss_all), flat_predss_all[0].shape)
-    print(flat_targets_all.shape)
-    print(flat_targets_all[:50])
-    print(flat_predss_all[0][:50], flat_predss_all[1][:50], flat_predss_all[2][:50], flat_predss_all[3][:50])
+    print("flat_targets_all.shape", flat_targets_all.shape)
     print(config.num_sub_heads)
 
     cluster_labels = flat_predss_all[0].cpu().numpy()
     actual_labels = flat_targets_all.cpu().numpy()
 
     # visualize each cluster
-    view_dataset = torchvision.datasets.CIFAR10(config.dataset_root, train=True,
-                                                transform=torchvision.transforms.ToTensor())
+    # view_dataset = torchvision.datasets.CIFAR10(config.dataset_root, train=True,
+    #                                             transform=torchvision.transforms.ToTensor())
+    view_dataset = ImageNetDS(config.dataset_root, 32, train=True,
+                              transform=torchvision.transforms.ToTensor())
+
     for c in range(config.output_k_B):
         cluster_indices = np.where(cluster_labels == c)[0]
         gt_indices = np.where(actual_labels == c)[0]
-
+        print("cluster {} have {} images".format(c, len(cluster_indices)))
         c_dataloader = torch.utils.data.DataLoader(view_dataset, batch_size=64, shuffle=False,
                                                    sampler=SubsetRandomSampler(cluster_indices))
         gt_dataloader = torch.utils.data.DataLoader(view_dataset, batch_size=64, shuffle=False,
@@ -87,13 +88,20 @@ def main():
 
         for (images, targets) in c_dataloader:
             print("saving cluster {}".format(c), images.shape)
-            torchvision.utils.save_image(images, 'c{}.png'.format(c))
+            torchvision.utils.save_image(images, 'cluster{}.png'.format(c))
             break
 
-        for (images, targets) in gt_dataloader:
-            print("sanity check gt classes {}".format(c), images.shape)
-            torchvision.utils.save_image(images, 'gt{}.png'.format(c))
-            break
+        # for (images, targets) in gt_dataloader:
+        #     print("sanity check gt classes {}".format(c), images.shape)
+        #     torchvision.utils.save_image(images, 'gt{}.png'.format(c))
+        #     break
+
+    # save the cluster labels as before
+    save = {'label': cluster_labels}
+    filename = 'iic-k10-cluster.pickle'
+    with open(filename, 'wb') as f:
+        pickle.dump(save, f, protocol=pickle.HIGHEST_PROTOCOL)
+    print("saved iic unsupervised cluster to {}!".format(filename))
 
 
 if __name__ == "__main__":
