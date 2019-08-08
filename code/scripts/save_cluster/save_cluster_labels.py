@@ -68,40 +68,44 @@ def main():
     print("flat_targets_all.shape", flat_targets_all.shape)
     print(config.num_sub_heads)
 
-    cluster_labels = flat_predss_all[0].cpu().numpy()
-    actual_labels = flat_targets_all.cpu().numpy()
-
     # visualize each cluster
     # view_dataset = torchvision.datasets.CIFAR10(config.dataset_root, train=True,
     #                                             transform=torchvision.transforms.ToTensor())
     view_dataset = ImageNetDS(config.dataset_root, 32, train=True,
                               transform=torchvision.transforms.ToTensor())
 
-    for c in range(config.output_k_B):
-        cluster_indices = np.where(cluster_labels == c)[0]
-        gt_indices = np.where(actual_labels == c)[0]
-        print("cluster {} have {} images".format(c, len(cluster_indices)))
-        c_dataloader = torch.utils.data.DataLoader(view_dataset, batch_size=64, shuffle=False,
-                                                   sampler=SubsetRandomSampler(cluster_indices))
-        gt_dataloader = torch.utils.data.DataLoader(view_dataset, batch_size=64, shuffle=False,
-                                                    sampler=SubsetRandomSampler(gt_indices))
+    # cluster_labels = flat_predss_all[0].cpu().numpy()
+    actual_labels = flat_targets_all.cpu().numpy()
 
-        for (images, targets) in c_dataloader:
-            print("saving cluster {}".format(c), images.shape)
-            torchvision.utils.save_image(images, 'cluster{}.png'.format(c))
-            break
+    for head in range(config.num_sub_heads):   # each head is a clustering prediction
 
-        # for (images, targets) in gt_dataloader:
-        #     print("sanity check gt classes {}".format(c), images.shape)
-        #     torchvision.utils.save_image(images, 'gt{}.png'.format(c))
-        #     break
+        cluster_labels = flat_predss_all[head].cpu().numpy()
 
-    # save the cluster labels as before
-    save = {'label': cluster_labels}
-    filename = 'iic-k10-cluster.pickle'
-    with open(filename, 'wb') as f:
-        pickle.dump(save, f, protocol=pickle.HIGHEST_PROTOCOL)
-    print("saved iic unsupervised cluster to {}!".format(filename))
+        for c in range(config.output_k_B):
+            cluster_indices = np.where(cluster_labels == c)[0]
+            # gt_indices = np.where(actual_labels == c)[0]
+            print("HEAD {}: cluster {} have {} images".format(head, c, len(cluster_indices)))
+            c_dataloader = torch.utils.data.DataLoader(view_dataset, batch_size=64, shuffle=False,
+                                                       sampler=SubsetRandomSampler(cluster_indices))
+            # gt_dataloader = torch.utils.data.DataLoader(view_dataset, batch_size=64, shuffle=False,
+            #                                             sampler=SubsetRandomSampler(gt_indices))
+
+            for (images, targets) in c_dataloader:
+                print("saving cluster {}".format(c), images.shape)
+                torchvision.utils.save_image(images, 'head{}-cluster{}.png'.format(head, c))
+                break
+
+            # for (images, targets) in gt_dataloader:
+            #     print("sanity check gt classes {}".format(c), images.shape)
+            #     torchvision.utils.save_image(images, 'gt{}.png'.format(c))
+            #     break
+
+        # save the cluster labels as before
+        save = {'label': cluster_labels}
+        filename = 'iic-k10-head{}-cluster-model{}.pickle'.format(head, config.model_ind)
+        with open(filename, 'wb') as f:
+            pickle.dump(save, f, protocol=pickle.HIGHEST_PROTOCOL)
+        print("saved iic unsupervised cluster to {}!".format(filename))
 
 
 if __name__ == "__main__":

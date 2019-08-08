@@ -25,3 +25,4 @@ python ./code/scripts/cluster/cluster_sobel_twohead.py \
 --head_A_first \
 --head_B_epochs 2 \
 --batchnorm_track \
+--restart
